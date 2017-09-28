@@ -1,10 +1,6 @@
 import re
 import sys
 
-l_bracket_count = 0
-r_bracket_count = 0
-
-
 def isReservedWord(currLex):
     regex = r"(double|while|if|else|switch|for|return|null|int|float|do|string|bool|void)"
     matches = re.finditer(regex, currLex, re.IGNORECASE)
@@ -19,7 +15,7 @@ def isReservedWord(currLex):
 
 
 def isNum(currLex):
-    regex = r"^[-+]?[1-9]\d*$"
+    regex = r"(?!\w)[-+]?[0-9]\d*"
     matches = re.finditer(regex, currLex, re.IGNORECASE)
     matchNum = 0
     for matchNum, match in enumerate(matches):
@@ -32,7 +28,7 @@ def isNum(currLex):
 
 
 def isDouble(currLex):
-    regex = r"^[0-9]{1,13}(\.[0-9]+)?$"
+    regex = r"[0-9]{1,13}\.([0-9]+)?"
     matches = re.finditer(regex, currLex, re.IGNORECASE)
     matchNum = 0
     for matchNum, match in enumerate(matches):
@@ -59,15 +55,23 @@ def isRelationalOp(currLex):
 
 def isLogicOp(currLex):
     # im too lazy to regex using ascii
-    if(currLex == "||" or currLex == "&&"):
+    lex = re.sub(r"\n|\s|\r|\t\f", "", currLex)
+    if(lex == "||" or lex == "&&"):
         return True
 
     return False
 
 
 def isArithOp(currLex):
-    if(currLex == "=" or currLex == "*" or currLex == "/" or currLex == "-" or currLex == "+"):
+    regex = r"(\=|\*|\/|\-|\+)"
+    matches = re.finditer(regex, currLex, re.IGNORECASE)
+    matchNum = 0
+    for matchNum, match in enumerate(matches):
+        matchNum = matchNum + 1
+
+    if(matchNum != 0):
         return True
+
     return False
 
 
@@ -129,7 +133,9 @@ def isSemicolon(currLex):
 def scan(currLex):
     if(isReservedWord(currLex)):
         return 'reserved_word'
-    if(isNum(currLex) or isDouble(currLex)):
+    if(isNum(currLex)):
+        return 'num'
+    if(isDouble(currLex)):
         return 'num'
     if(isRelationalOp(currLex)):
         return 'relationalOp'
@@ -153,14 +159,12 @@ def scan(currLex):
         return 'semicolon'
     if(isArithOp(currLex)):
         return 'arith_op'
-
     return 'id'
 
-# regex = r"\w*(//)+(.)*"
 
 
 def isFuncName(currLex):
-    regex = r"(.)(^=)*[(]{1}(.)*[)]{1}"
+    regex = r"(\w)(^=)*(\s)*[(]{1}(.)*[)]{1}"
     matches = re.finditer(regex, currLex, re.IGNORECASE)
     matchNum = 0
     for matchNum, match in enumerate(matches):
@@ -176,12 +180,12 @@ concatenatedCode = ""
 for input_var in sys.stdin:
     input_var = re.sub(r"(//)(.*)(?=)", "", input_var)  # delete // comments
     input_var = re.sub(r"\w*(//)+(.)*", "", input_var)
-    # input_var = re.sub()
+    input_var = re.sub(r"\n","", input_var)
     concatenatedCode = concatenatedCode + " " + input_var
 
 concatenatedCode = re.sub(r"/\*(.|[\r\n])*?\*/", "", concatenatedCode)
 
-for word in re.split("({|}|;|if|int\s|bool\s|float\s|string\s|void\s|while|do|==|=)", concatenatedCode):
+for word in re.split("(\|{2}|;|if|int\s|else|switch|for|bool\s|float\s|string\s|void\s|while|do|==|!=|=|)", concatenatedCode):
     wordToScan = re.sub(r"\s", "", word)
     if (wordToScan != "" and wordToScan != None and word != "" and word != None):
         if(isFuncName(word)):
@@ -190,11 +194,10 @@ for word in re.split("({|}|;|if|int\s|bool\s|float\s|string\s|void\s|while|do|==
             idxword = word.find("(")
             print("[function," + functionName[:idx] + "]")
             word = word[idxword:]
-        newWordToScan = (r"\n|\s|\r|\t\f[\n]", "", word)
-        print(newWordToScan)
-        if (newWordToScan != "" and newWordToScan is not None):
-            for word2 in re.split("([+|-|/|*]{1}|[(]|[)]|,|<=|!=|>=|&&|<|>|return|)", word):
+        newWordToScan = re.sub(r"\n|\s|\r|\t\f", "", word)
+        for word2 in re.split("([+|-|/|*]{1}|,|[(]|[)]|<=|!=|>=|&&|<|>|return|)", word):
+            if (re.search(r"([0-9]+)", word2) is not None or (re.search(r"(\S)+", word2)) is not None):
                 token = scan(word2)
                 if(token != 'string_literal'):
                     word2 = re.sub(r"\n|\s|\r|\t\f", "", word2)
-                print("[" + token + "," + word2 + "]")
+                    print("[" + token + "," + word2 + "]")
