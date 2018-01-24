@@ -1,0 +1,1 @@
+Code I wrote while following [Colin O](https://github.com/asciiascetic) tutorial on [web scraping practical introduction](https://realpython.com/blog/python/python-web-scraping-practical-introduction/) (with some enhancements).
