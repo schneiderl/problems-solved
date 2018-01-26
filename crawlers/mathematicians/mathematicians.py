@@ -18,6 +18,16 @@ def get_mathematicians_ranking():
         print("{} had {} pageviews in the last 60 days.".format(mathematician, pv))
 
 
+def get_score(name):
+    score = do_simple_search(name)
+    if score is None:
+        score = do_wiki_search(name)
+    if score is None:
+        print("couldnt find any information about {}".format(name))
+        return None
+    return score
+
+
 def do_simple_search(name):
     url_root = 'https://xtools.wmflabs.org/articleinfo/en.wikipedia.org/{}'
     response = simple_get(url_root.format(name))
@@ -32,6 +42,24 @@ def do_simple_search(name):
         except:
             log_error('couldnt parse' + link_text + "as an int.")
     return None
+
+
+def do_wiki_search(name):
+    wiki_search_url = "https://en.wikipedia.org/w/index.php?search={}"
+    name = name.replace(" ", "+")
+    response = simple_get(wiki_search_url.format(name))
+
+    current_url = get_canonical_url(response)
+    if was_page_redirected(current_url):
+        # then we are on the wikipedia page
+        name = current_url.replace(
+            "https://en.wikipedia.org/wiki/", "").strip()
+        return(do_simple_search(name))
+    else:
+        log_error("Couldn't find any results for {}".format(
+            name.replace("+", " ")))
+        # then we are on the wikipedia search page
+        # TODO: Perform a search for possible mathematicians of the result list
 
 
 def get_canonical_url(resp):
@@ -49,33 +77,6 @@ def was_page_redirected(current_url):
         return False
     else:
         return True
-
-
-def do_wiki_search(name):
-    wiki_search_url = "https://en.wikipedia.org/w/index.php?search={}"
-    name = name.replace(" ", "+")
-    response = simple_get(wiki_search_url.format(name))
-
-    current_url = get_canonical_url(response)
-    if was_page_redirected(current_url):
-        # then we are on the wikipedia page
-        name = current_url.replace(
-            "https://en.wikipedia.org/wiki/", "").strip()
-        return(do_simple_search(name))
-    else:
-        log_error("Couldn't find any results for {}".format(name.replace("+"," ")))
-        # then we are on the wikipedia search page
-        #TODO: Perform a search for possible mathematicians of the result list
-
-
-def get_score(name):
-    score = do_simple_search(name)
-    if score is None:
-        score = do_wiki_search(name)
-    if score is None:
-        print("couldnt find any information about {}".format(name))
-        return None
-    return score
 
 
 def get_names():
